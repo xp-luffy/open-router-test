@@ -2,36 +2,30 @@
 
 ## Risk Levels & Actions
 
-### Low — Auto (no approval needed)
-- Tag lead source from free-text input
-- Normalise status string on save
-- Append activity row on every status change
+### Low — auto-execute
+- Score lead on insert (Postgres trigger)
+- Tag lead status from form submit
 
-### Medium — Light Approval (founder confirms)
-- Draft a follow-up email for a lead (shown as draft, not sent)
-- Suggest status upgrade based on inactivity rule
+### Medium — light approval
+- Bulk-update lead status (UI confirmation dialog)
 
-### High — Always Approval
-- Send an email to a lead (requires explicit send button)
-- Initiate a Stripe refund request
+### High — always approval
+- Initiate Stripe Checkout session (user explicitly clicks Pay)
+- Send payment receipt email (v2)
 
-### Critical — Human Only
-- Delete all leads (bulk)
-- Issue refund / cancel subscription
-- Any legal communication
+### Critical — human only
+- Issue refund
+- Delete payment record
+- Any bulk-delete of leads
 
-## Named Tools (v1 + planned)
-| Tool | Risk | v1? |
-|---|---|---|
-| `upsert_lead` | Low | ✓ |
-| `append_activity` | Low | ✓ |
-| `write_audit_log` | Low | ✓ |
-| `create_stripe_session` | High | ✓ |
-| `handle_stripe_webhook` | High | ✓ |
-| `draft_follow_up_email` | Medium | Later |
-| `send_email` | High | Later |
+## Named Tools (v1)
+- `leads.create` — insert validated lead row
+- `leads.update_status` — change status field only
+- `payments.create_checkout_session` — server-side Stripe session
+- `payments.activate` — webhook handler, marks payment active
 
-## Audit Log Fields
-`id, user_id, table_name, record_id, action, payload (jsonb), created_at`
+## Audit Log Fields (added at lock-down sprint)
+`id, actor_id, action, object_type, object_id, payload_json, created_at`
 
-Every tool call writes an audit row. Agent inherits the authenticated user's permissions — no elevated access.
+## v1 Scope
+Only auto-scoring and the Stripe checkout flow. Approval queues and AI-initiated actions are v2.

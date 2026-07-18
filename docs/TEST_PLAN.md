@@ -1,32 +1,31 @@
 # Test Plan
 
-## V1 Success Scenario (walk this in order)
-1. Open live URL as a logged-out stranger → lead list renders with 5 demo leads, no login wall
-2. Click **Add Lead** → fill name="Test Founder", email, company, source="LinkedIn", status="new" → submit → row appears in list immediately
-3. Click the new lead → detail page loads with correct fields
-4. Change status to "qualified" → activity feed shows "status_changed: new → qualified" with timestamp
-5. Add a note → activity feed appends "note_added" entry
-6. Click **Delete** on the test lead → confirmation dialog → confirm → lead removed from list and DB
-7. Add 5 leads total (free tier cap) → try to add a 6th → "Upgrade to add more leads" banner appears, form disabled
-8. Click **Upgrade** → `/upgrade` page loads with plan comparison
-9. Click **Start paid plan** → redirected to Stripe Checkout (test mode)
-10. Enter card 4242 4242 4242 4242, any future expiry, any CVC → complete payment
-11. Redirected to `/success` → UI reflects paid plan → Add Lead form re-enabled → CSV export button visible
-12. Click **Export CSV** → file downloads with correct headers and lead data
+## Success Scenario (manual walkthrough)
+1. Open live URL — lead list loads with 5 seeded leads, no login prompt
+2. Click "Add Lead" → fill name=Test User, company=Acme, email=test@acme.com → Submit
+3. Confirm new lead appears in list with a computed score (0–100)
+4. Add 5 more leads until count = 6 → expect upgrade banner / blocked
+5. Click "Upgrade" → Stripe Checkout opens in test mode
+6. Enter card `4242 4242 4242 4242`, any future date, any CVC → Pay
+7. Redirected to `/success` — confirm success message
+8. Return to lead list — all leads visible, 6th lead saves cleanly
+9. Check Supabase `payments` table — row with `status = active` exists
 
-## Empty States
-- New Supabase project with no seed data → lead list shows "Add your first lead" empty state
-- Lead with no activity → activity feed shows "No activity yet"
-- Upgrade page before payment → plan = 'free' correctly shown
+## Empty State
+- Delete all leads → list shows "No leads yet. Add your first lead." with Add button
 
 ## Error Cases
-- Submit Add Lead form with blank name → inline validation error, no DB write
-- Navigate to `/leads/non-existent-id` → 404 page with "Lead not found"
-- Stripe webhook sent without valid signature → returns 400, no DB change
-- API route called without auth (Sprint 4+) → returns 401, no data leaked
+- Submit Add Lead form with empty name → inline validation error, no DB write
+- Stripe webhook with bad signature → returns 400, no DB write, error logged
+- `/api/leads` called with malformed body → returns 422, UI shows "Something went wrong"
 
-## Regression Check (run after every sprint)
-- Lead list still loads and shows seeded rows
-- Add/edit/delete still persists correctly
-- Stripe test payment still flips `lead_access.plan` to 'paid'
-- No `console.error` in browser devtools during normal use
+## Loading States
+- Simulate slow network → spinner shown on lead list fetch and on form submit
+
+## Payment Verification
+- Stripe Dashboard → test payments → confirm session appears
+- Confirm `payments` row in Supabase with matching `stripe_session_id`
+
+## Security Spot-Check
+- View page source / network tab → confirm no `STRIPE_SECRET_KEY` or `SUPABASE_SERVICE_ROLE_KEY` visible
+- Stripe webhook: replay request without signature header → expect 400

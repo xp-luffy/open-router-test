@@ -1,32 +1,31 @@
 # PRD — open-router-test
 
 ## Problem
-Founders lose track of leads across spreadsheets and inboxes. There is no lightweight tool they can start using in minutes and pay for without a sales call.
+Founders waste time manually tracking leads with no visibility into which ones are worth pursuing. They need a dead-simple paid tool that captures, scores, and surfaces the leads most likely to convert.
 
 ## Target User
-Early-stage founders managing their own sales pipeline (0–2 person sales team).
+Early-stage founders managing a small pipeline (<200 leads) without a full CRM.
 
 ## Core Objects
-- **Lead** — the central record: name, email, company, source, status, notes
-- **Activity** — append-only log of every status change or note on a lead
-- **Audit Log** — server-side record of every write action
-- **Lead Access** — tracks free vs paid plan per user, linked to Stripe
+- **Lead** — name, company, email, status, score, notes
+- **Payment** — plan, stripe_session_id, status, activated_at
 
-## MVP Must-Haves (v1)
-- [ ] Add, edit, delete a lead with name / email / company / source / status / notes
-- [ ] Lead list view with status badges
-- [ ] Activity log per lead (every status change recorded)
-- [ ] Stripe Checkout (test mode) — one paid tier, $29/mo
-- [ ] Free tier capped at 5 leads; paid tier unlimited + CSV export
-- [ ] Stripe webhook updates `lead_access.plan` in DB on payment success
-- [ ] App is viewable and demoable without login
+## MVP Checklist (v1 must-haves)
+- [ ] Add / edit / delete a lead with status (new → contacted → qualified → closed)
+- [ ] Lead list with status filter and score column
+- [ ] Auto-score each lead (rule-based: company + email + status signals)
+- [ ] Stripe Checkout for a single paid tier ($29/mo)
+- [ ] Payment status gates adding more than 5 leads (free limit)
+- [ ] Demo mode: app renders with seed data, no login required
 
 ## Non-Goals (v1)
-- Team seats / shared pipelines
-- Email notifications
-- AI scoring or enrichment
+- Team / multi-user accounts
+- Email sending or sequences
 - CRM integrations
-- User login / per-user isolation (Sprint 4)
+- AI-generated outreach drafts
 
 ## Success Criteria
-A founder visits the live URL, sees real-looking demo leads, adds their own lead, changes its status (activity row written), clicks Upgrade, completes Stripe test checkout, and the app unlocks paid features — all without a single dead button or manual DB edit.
+A founder visits the live URL, sees 5 demo leads, adds a real lead, hits the 5-lead limit, completes Stripe Checkout in test mode, is redirected back, and can now add unlimited leads — all without a login wall. Payment row is written to the database.
+
+## Definition of Done
+The success scenario above passes end-to-end in a live preview deployment. Every button persists to the database. Empty, error, and loading states are handled. No secrets in frontend. Payment verified in Stripe test mode.

@@ -1,29 +1,27 @@
 # Architecture
 
 ## Stack
-- **Frontend**: Next.js 14 (App Router) on Vercel
-- **Database + Auth**: Supabase (Postgres + RLS + Auth)
-- **Payments**: Stripe Checkout + Webhooks
-- **Env secrets**: Vercel environment variables only — never in source
+- **Frontend:** Next.js 14 (App Router)
+- **Database + Auth:** Supabase (Postgres, RLS)
+- **Payments:** Stripe Checkout (test mode first)
+- **Hosting:** Vercel
 
 ## Now vs Later
-| Now (v1) | Later |
-|---|---|
-| Lead CRUD, activity log | AI lead scoring |
-| Stripe checkout + paid gate | Team seats |
-| Demo-first, no login wall | Email notifications |
-| Owner-scoped RLS (Sprint 4) | CRM integrations |
+**Now:** lead CRUD, rule-based scoring, Stripe Checkout, payment gate, seed demo data
+**Later:** login/auth, per-user data isolation, AI scoring, email sequences
 
-## Key User Action — End-to-End Flow
-1. Founder opens `/` — lead list loads from Supabase (seeded demo rows visible immediately)
-2. Clicks **Add Lead** — form submits to `/api/leads` (POST) → inserted into `leads` table
-3. Changes status on a lead → `leads` row updated + `activities` row appended + `audit_logs` row written, all server-side
-4. Clicks **Upgrade** → redirected to Stripe Checkout (server-created session, price ID from env)
-5. Completes payment → Stripe fires `checkout.session.completed` webhook → `/api/webhooks/stripe` verifies signature, upserts `lead_access.plan = 'paid'`
-6. UI re-fetches `lead_access` → paid features unlock
+## Key User Action — Add a Lead & Pay
+1. Visitor lands on `/` — sees seeded demo leads (no login)
+2. Fills "Add Lead" form → POST `/api/leads` → inserted into `leads` table
+3. If lead count > 5 → API returns `payment_required`
+4. Frontend redirects to Stripe Checkout session (created server-side)
+5. Stripe webhook hits `/api/webhooks/stripe` → writes `payments` row, sets `activated = true`
+6. User redirected to `/success` → lead limit lifted, lead list refreshes
 
 ## Layer Plan
-1. **Database** — tables + constraints + RLS policies (truth lives here)
-2. **API routes** — CRUD + Stripe session creation + webhook handler
-3. **UI** — reads from DB, writes through API, never touches Stripe secret keys
-4. **Smart features** — AI scoring added on top later; removing it leaves a fully functional app
+1. **Data layer** — tables, constraints, RLS policies, seed data
+2. **App logic** — CRUD API routes, payment gate, Stripe webhook
+3. **Smart features** — rule-based score on insert (later: AI re-score)
+
+## Core Without AI
+Scoring is a Postgres function (`0–100` from status + email domain + company present). Removing AI leaves a fully functional lead tracker.

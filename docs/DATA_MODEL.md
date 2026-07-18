@@ -4,51 +4,32 @@
 | Field | Type | Notes |
 |---|---|---|
 | id | uuid PK | gen_random_uuid() |
-| user_id | uuid nullable | owner; FK added at lock-down |
-| name | text NOT NULL | |
-| email | text | |
+| user_id | uuid nullable | owner scope (used at lock-down) |
+| name | text not null | |
 | company | text | |
-| source | text | LinkedIn / Referral / Cold outreach / etc. |
-| status | text NOT NULL default 'new' | new / qualified / negotiating / won / lost |
+| email | text | |
+| status | text default 'new' | new/contacted/qualified/closed |
 | notes | text | |
-| created_at | timestamptz | |
+| score | numeric | rule-based 0–100 |
+| score_source | text | 'rules_v1' |
+| score_confidence | numeric | 0–1 |
+| score_review_status | text default 'unreviewed' | |
+| created_at | timestamptz not null default now() | |
 
-## activities
+## payments
 | Field | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
 | user_id | uuid nullable | |
-| lead_id | uuid FK → leads.id | cascade delete |
-| action | text NOT NULL | e.g. 'status_changed', 'note_added' |
-| old_value | text | |
-| new_value | text | |
-| created_at | timestamptz | |
-
-## audit_logs
-| Field | Type | Notes |
-|---|---|---|
-| id | uuid PK | |
-| user_id | uuid nullable | |
-| table_name | text | |
-| record_id | uuid | |
-| action | text | insert / update / delete |
-| payload | jsonb | full diff snapshot |
-| created_at | timestamptz | |
-
-## lead_access
-| Field | Type | Notes |
-|---|---|---|
-| id | uuid PK | |
-| user_id | uuid nullable | tied to auth user at lock-down |
-| stripe_customer_id | text | |
-| stripe_subscription_id | text | |
-| plan | text default 'free' | free / paid |
-| paid_at | timestamptz | |
-| created_at | timestamptz | |
-
-## AI Fields (future)
-Any AI-generated score on a lead stores: `score_value numeric`, `score_source text`, `score_confidence numeric`, `score_review_status text default 'unreviewed'`.
+| stripe_session_id | text | |
+| plan | text default 'pro_monthly' | |
+| status | text default 'pending' | pending/active/cancelled |
+| activated_at | timestamptz | |
+| created_at | timestamptz not null default now() | |
 
 ## RLS
-- v1: permissive read + write for all tables (demo-first)
-- Sprint 4: replaced with `auth.uid() = user_id` owner-scoped policies
+- v1: permissive read + write for both tables (demo-first)
+- Lock-down sprint: replace with `auth.uid() = user_id` policies
+
+## Secondary tables (lock-down sprint)
+`users`, `audit_logs` — added when auth is wired.
