@@ -1,33 +1,31 @@
-# PRD — Lead Tracker for Founders
+# PRD — open-router-test Lead Tracker
 
 ## Problem
-Founders lose track of leads across spreadsheets, DMs, and notebooks. They need one lightweight place to capture, score, and follow up on leads — and pay for it on day one.
+Founders lose track of leads across notes, spreadsheets, and DMs. They need a single place to capture, score, and move leads through a pipeline — and a way to charge for access from day one.
 
 ## Target User
-Early-stage founder managing their own pipeline; no sales team.
+Early-stage founders managing ≤100 leads personally. No ops team, no CRM budget.
 
 ## Core Objects
-- **Lead** — a potential customer contact with status and score
-- **Activity** — a note or touchpoint logged against a lead
-- **Subscription** — payment tier (free / pro)
+- **Lead** — the central record: name, company, email, source, status, score, notes
+- **Activity** — timestamped events on a lead (call, email, meeting, proposal)
+- **Audit Log** — every write action with risk level
 
 ## MVP Checklist
-- [ ] Add / edit / delete a lead (name, email, company, status, notes)
-- [ ] Log an activity against a lead (note text, date)
-- [ ] AI scores each lead 1–10 with a reason (auto, reviewable)
-- [ ] Dashboard lists leads sorted by score
-- [ ] Free tier: up to 5 leads; Pro tier: unlimited
-- [ ] Stripe Checkout session created and webhook confirms payment
-- [ ] Pro gate enforced server-side
+- [ ] Lead list viewable by anonymous visitor (seed data visible on first load)
+- [ ] Add / edit / delete lead — all persist to DB, UI reflects immediately
+- [ ] Rule-based lead score (source + status + recency) shown on every lead
+- [ ] Activity log per lead — add and view entries
+- [ ] Free tier: ≤5 leads; Paid tier: unlimited ($9/mo)
+- [ ] Stripe Checkout (sandbox) — upgrade flow works end-to-end, webhook updates DB
+- [ ] Every screen handles loading, empty, error, partial, and ready states
 
 ## Non-Goals (v1)
-- Team/multi-user workspaces
-- Email sending or calendar integration
-- CRM import/export
-- Mobile app
+- Multi-user teams or shared workspaces
+- Email sending or sequence automation
+- CRM integrations
+- AI summaries (Sprint 5)
+- Mobile-native app
 
 ## Success Criteria
-A founder visits the live URL, sees demo leads, adds a real lead, clicks Upgrade, completes Stripe test-mode checkout, and immediately gets Pro access — all without contacting support.
-
-## Definition of Done
-Every button persists to the database; UI reflects the change on reload; empty/error/loading states handled; no secrets in frontend; real Stripe test payment confirmed end-to-end.
+A founder visits the live URL, sees demo leads, adds their first real lead, hits the 5-lead free limit, completes a Stripe sandbox checkout, and the UI unlocks unlimited lead creation — all without a login wall. A real (sandbox) payment has been received and logged.

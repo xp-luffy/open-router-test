@@ -1,32 +1,37 @@
 # Agentic Layer
 
-## Risk Levels & Actions
+## Risk Levels and Actions
 
 ### Low — auto-execute
-- Score a lead from notes (OpenRouter call → write to `leads.score`)
-- Tag lead status based on activity count
+- Recalculate lead score on save
+- Tag lead source from URL param on inbound signup
+- Generate AI summary draft (stored as `unreviewed`)
 
-### Medium — show draft, founder confirms
-- Suggest follow-up note text for a lead
-- Flag stale leads (no activity > 14 days)
+### Medium — user approves before executing
+- Promote AI next-action draft to activity log
+- Change lead status based on AI recommendation
+- Send internal Slack/email notification on status change
 
-### High — approval required
-- Create Stripe Checkout session (charges the user)
-- Send any email on founder's behalf (v2)
+### High — explicit approval required
+- Trigger Stripe checkout session (user must click)
+- Cancel subscription
 
-### Critical — human only
+### Critical — human only, never automated
 - Issue refund
-- Delete account data
-- Any bulk delete
+- Delete all leads (bulk)
+- Export PII data
 
-## Named Tools (v1)
-- `score_lead(lead_id)` — reads lead, calls OpenRouter, writes score fields
-- `create_checkout_session(user_id)` — calls Stripe API, returns URL
-- `confirm_subscription(stripe_session_id)` — webhook handler, writes subscription row
+## Named Tools (approved list)
+- `leads.create` / `leads.update` / `leads.delete`
+- `activities.log`
+- `score.recompute`
+- `stripe.create_checkout_session`
+- `stripe.cancel_subscription`
+- `openrouter.generate_summary` (server-side only)
+- `audit.write`
 
 ## Audit Log Fields
-`tool_name | input_snapshot | output_snapshot | actor_id | risk_level | approved_by | created_at`
+`action`, `object_type`, `object_id`, `user_id`, `delta` (before/after), `risk_level`, `created_at`
 
-## v1 vs Later
-**v1**: score_lead (auto), create_checkout_session (high/approval)
-**Later**: follow-up drafter, stale-lead notifier, bulk re-score
+## v1 Scope
+Only low-risk auto actions and the Stripe checkout (high, user-initiated). Medium and critical actions are Sprint 5+.

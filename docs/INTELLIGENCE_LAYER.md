@@ -1,34 +1,40 @@
 # Intelligence Layer
 
 ## Messy Input
-Free-text notes field on a lead: "Met at YC event, building fintech, $2M ARR, ready to buy Q1"
+Founders paste unstructured notes: "Met Sarah at conf, she runs a 10-person team, budget unclear, follow up next week"
 
-## Auto-Structure (scored on save)
+## Auto-Structure Schema (v1 rule-based scoring)
 ```json
 {
-  "score": 8,
-  "reason": "High ARR signal, clear timeline, warm intro",
-  "source": "openrouter/gpt-4o-mini",
-  "confidence": 0.82,
-  "review_status": "unreviewed"
+  "lead_id": "uuid",
+  "score_breakdown": {
+    "source_weight": 25,
+    "status_weight": 40,
+    "recency_bonus": 15
+  },
+  "total_score": 80,
+  "computed_at": "2024-01-15T10:00:00Z"
 }
 ```
-Stored in `leads.score`, `score_source`, `score_confidence`, `score_review_status`.
+
+## Scoring Rules (v1 — rule-based, no AI)
+| Factor | Logic | Max Points |
+|---|---|---|
+| Source | referral=25, inbound=20, conference=15, cold=5 | 25 |
+| Status | closed-won=40, negotiating=35, qualified=25, contacted=15, new=5 | 40 |
+| Recency | created within 7d=15, 30d=10, 90d=5, older=0 | 15 |
+| Notes length | >100 chars=10, >20=5 | 10 |
+| Activity count | ≥3=10, ≥1=5 | 10 |
 
 ## Events to Track
-- Lead created
-- Lead notes updated (re-score triggered)
-- Score reviewed / overridden by founder
+- Lead created, edited, deleted
+- Status changed
+- Activity logged
+- Score recalculated
+- Subscription upgraded
 
-## Scoring Rules (v1 — rule-based fallback)
-- Mentions budget/ARR → +3
-- Has email → +1
-- Status = 'qualified' → +2
-- No notes → score = 3 (default)
-
-## Ranking
-Dashboard sorts by `score DESC`, then `created_at DESC`.
-
-## v1 vs Later
-**v1**: score on create/update, display reason, allow manual override
-**Later**: batch re-score, lead clustering, suggested next action
+## AI Layer (Sprint 5)
+- **Input:** lead notes + activity descriptions
+- **Output:** `ai_summary` (2-sentence digest) + `ai_next_action` (one suggested step)
+- **Stored:** value + source (model name) + confidence + review_status
+- **v1:** scoring is entirely rule-based — AI is additive and can be disabled

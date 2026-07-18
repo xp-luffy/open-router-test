@@ -1,29 +1,28 @@
 # Architecture
 
 ## Stack
-- **Frontend**: Next.js 14 (App Router)
-- **Database**: Supabase (Postgres + RLS)
-- **Auth**: Supabase Auth (added in lock-down sprint)
-- **Payments**: Stripe Checkout + webhooks
-- **Deploy**: Vercel
+- **Frontend:** Next.js 14 (App Router) on Vercel
+- **Database:** Supabase (Postgres + RLS)
+- **Payments:** Stripe Checkout + webhooks
+- **AI (Sprint 5):** OpenRouter API (server-side only)
 
-## Now vs Later
-**Now**: lead CRUD, activity log, AI score, Stripe checkout, pro gate
-**Later**: auth/RLS, team workspaces, email sequences, CRM import
+## Build Sequence
+**Now:** DB schema → seed data → lead CRUD → scoring engine → Stripe checkout
+**Next:** Auth + per-user RLS → AI summaries → activity import
+**Later:** Team workspaces → integrations → agentic outreach
 
-## Key User Action — Add & Score a Lead
-1. Founder submits lead form (name, email, company, notes)
-2. API route validates and inserts row into `leads`
-3. Background call to OpenAI via `openrouter` scores the lead → stored with source + confidence + review_status
-4. Dashboard re-fetches leads sorted by score
-5. If lead count > 5 and user is free tier → server returns 402, UI shows upgrade prompt
-6. Founder clicks Upgrade → API creates Stripe Checkout session → redirect
-7. Stripe webhook → sets `subscriptions.status = 'active'`
+## Key User Action Flow: Add a Lead and Pay
+1. Visitor opens `/` — lead list loads from Supabase (seed rows visible)
+2. Clicks "Add Lead" → fills form → POST to `/api/leads` (server action)
+3. Server validates, computes score, inserts row → returns updated list
+4. If free-tier limit reached → upgrade banner appears
+5. User clicks "Upgrade" → server creates Stripe Checkout session → redirect
+6. Stripe calls `/api/webhooks/stripe` on payment → server sets `subscription_active = true`
+7. UI re-fetches, lead cap removed, user continues
 
-## Layer Plan
-1. **Data** — tables + seed rows (runs without AI)
-2. **App logic** — CRUD routes, pro gate, Stripe webhook
-3. **Intelligence** — AI scoring layered on top; app functions if scoring fails
+## Layer Order
+1. **Data** — schema, constraints, RLS (source of truth)
+2. **App logic** — CRUD, scoring, tier enforcement (runs without AI)
+3. **Smart features** — AI summaries, next-action drafts (additive, removable)
 
-## Core Without AI
-Removing OpenAI calls leaves full lead CRUD + payment flow intact.
+The core runs fully if OpenRouter is disabled — scoring is rule-based, summaries just don't appear.
