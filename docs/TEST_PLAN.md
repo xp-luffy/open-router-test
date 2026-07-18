@@ -1,34 +1,26 @@
 # Test Plan
 
-## Core Success Scenario (manual walkthrough)
-1. Open live URL in a private/incognito window — lead list renders with 5 seed leads. ✓
-2. Click "Add Lead" — form opens with all fields visible.
-3. Submit empty form — validation errors appear on required fields; nothing saved. ✓
-4. Fill in name, company, email, source=referral, status=qualified, add notes >100 chars — submit.
-5. New lead appears in list with score ≥70. Refresh page — lead still present. ✓
-6. Click lead → detail page shows, activity timeline is empty with empty-state copy. ✓
-7. Edit status → negotiating — score updates on save, list re-orders. ✓
-8. Add 4 more leads to reach the 5-lead free limit.
-9. Attempt to add a 6th lead — upgrade banner appears; add form is blocked. ✓
-10. Click "Upgrade" → Stripe Checkout opens in sandbox mode.
-11. Enter test card `4242 4242 4242 4242` — payment completes.
-12. Return to app — success page shown, `subscription_active = true` in DB. ✓
-13. Add 6th lead — no longer blocked. ✓
-14. Delete a lead — confirmation dialog appears; lead removed from list; refresh confirms deletion. ✓
+## Success Scenario (manual walkthrough)
+1. Visit `/` (logged out) → lead list loads with ≥3 seeded rows. ✓
+2. Click **New Lead** → fill name, company, email, status=New → Save → appears in list with score. ✓
+3. Click lead → detail view shows activity log → add a Note → activity appears instantly. ✓
+4. Change status to Qualified → score increases; activity row logged. ✓
+5. Create leads until 5 exist → try to create #6 → blocked with upgrade prompt. ✓
+6. Click **Upgrade** → redirected to Stripe Checkout (test mode). ✓
+7. Enter card `4242 4242 4242 4242`, any expiry/CVC → complete payment. ✓
+8. Redirected to `/success` → plan shows **Paid**. ✓
+9. Create lead #6 → saves successfully. ✓
 
-## Empty State Cases
-- Delete all leads → list shows "No leads yet. Add your first lead." with CTA button.
-- Lead with no activities → detail page shows "No activity logged yet."
-- Score = 0 → red badge shown, not blank.
+## Empty States
+- New session with 0 leads → empty state with **Add your first lead** CTA.
+- Lead with no activities → "No activity yet" placeholder.
 
 ## Error Cases
-- Supabase unreachable → list shows "Unable to load leads. Retry." button. Core does not crash.
-- Stripe webhook with invalid signature → 400 returned, no DB write, error logged.
-- OpenRouter timeout → AI fields show "AI unavailable"; lead still saves normally.
-- Free user tries to add lead via direct API POST → server returns 403 with JSON error.
+- Stripe API unreachable → toast: "Payment service unavailable, try again."
+- DB insert fails → toast: "Couldn't save lead — please retry."
+- Duplicate Stripe webhook event → idempotency check; no double-upgrade.
 
-## Payment Verification
-- Confirm Stripe dashboard shows test payment received.
-- Confirm `audit_logs` has a row: `action=subscription.activate`, `risk_level=high`.
-- Test declined card (`4000 0000 0000 0002`) → user returned to upgrade page with "Payment failed" message.
-- Test webhook replay (Stripe dashboard) → idempotency: `subscription_active` stays true, no duplicate log rows.
+## Security Checks
+- Open browser DevTools → confirm no `STRIPE_SECRET_KEY` or `SERVICE_ROLE_KEY` in network responses.
+- Manually POST to `/api/checkout` with malformed body → returns 400, no stack trace exposed.
+- Stripe webhook with wrong signature → returns 400, no DB write.

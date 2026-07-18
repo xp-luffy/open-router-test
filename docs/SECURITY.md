@@ -1,24 +1,25 @@
 # Security
 
 ## Secrets
-- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `OPENROUTER_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY` — Vercel env vars only, never in frontend bundles or committed to git
-- Stripe Checkout session created server-side (`/api/stripe/checkout`); public key only used client-side for redirect
-- Webhook endpoint validates `stripe-signature` header before processing
+- `STRIPE_SECRET_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are server-only env vars (Next.js API routes / Edge Functions only).
+- Frontend receives only the Stripe publishable key and Supabase anon key.
+- Never logged, never returned in API responses.
 
-## Permission Model
-- v1: permissive RLS (demo-first) — no sensitive user data in this phase
-- Lock-down sprint: `auth.uid() = user_id` on every table; service role key used only in server actions and webhooks
-- Agent actions inherit the calling user's Supabase session — no privilege escalation
+## Permission Model (v1 → lock-down)
+- v1: permissive RLS (`using (true)`) — demo-safe, no real user data yet.
+- Lock-down sprint: all policies replaced with `auth.uid() = user_id`; service-role key used only in webhook handler.
 
 ## Approved Tools Rule
-Only named tools in AGENTIC_LAYER.md may be called. No `eval`, no `run_any`, no raw SQL from user input.
+Agent may only call named tools listed in `AGENTIC_LAYER.md`. No `run_any` / `eval` / raw SQL execution from agent context.
+
+## Stripe Webhook
+- Signature verified with `stripe.webhooks.constructEvent` before any DB write.
+- Replay protection: `stripe_session_id` stored; duplicate events are no-ops.
 
 ## Audit Principle
-Every write (lead CRUD, subscription change, AI action) writes a row to `audit_logs` with risk level before the action completes.
+Every score recalculation, status change, and payment event writes a row to `activities` or the audit log. No meaningful action is silent.
 
-## Known Gaps to Address at Lock-Down
-- Rate-limiting on `/api/leads` and `/api/stripe/checkout` (add middleware)
-- Input sanitisation before any text reaches OpenRouter (strip prompt-injection patterns)
-- npm audit clean before production deploy
-- Verify no PII in Vercel logs or Supabase log drain
-- Items that cannot be automatically verified: CSRF token validity in all form paths, full prompt-injection coverage — manual review required
+## Known Limitations (v1)
+- No rate limiting on lead creation (add in lock-down sprint).
+- No CSRF token on API routes (mitigated by Supabase JWT at lock-down).
+- Penetration testing not performed — recommend before real user data ingestion.

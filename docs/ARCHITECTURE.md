@@ -1,28 +1,27 @@
 # Architecture
 
 ## Stack
-- **Frontend:** Next.js 14 (App Router) on Vercel
+- **Frontend:** Next.js 14 (App Router)
 - **Database:** Supabase (Postgres + RLS)
-- **Payments:** Stripe Checkout + webhooks
-- **AI (Sprint 5):** OpenRouter API (server-side only)
+- **Auth:** Supabase Auth (added in Lock-down sprint)
+- **Payments:** Stripe Checkout + Webhooks
+- **Hosting:** Vercel
 
-## Build Sequence
-**Now:** DB schema → seed data → lead CRUD → scoring engine → Stripe checkout
-**Next:** Auth + per-user RLS → AI summaries → activity import
-**Later:** Team workspaces → integrations → agentic outreach
+## Now vs Later
+**Now:** Lead CRUD, activity log, status pipeline, rule-based scoring, Stripe checkout, paid-tier gate.
+**Later:** Auth + per-user isolation, AI re-scoring, email follow-up drafts, team seats.
 
-## Key User Action Flow: Add a Lead and Pay
-1. Visitor opens `/` — lead list loads from Supabase (seed rows visible)
-2. Clicks "Add Lead" → fills form → POST to `/api/leads` (server action)
-3. Server validates, computes score, inserts row → returns updated list
-4. If free-tier limit reached → upgrade banner appears
-5. User clicks "Upgrade" → server creates Stripe Checkout session → redirect
-6. Stripe calls `/api/webhooks/stripe` on payment → server sets `subscription_active = true`
-7. UI re-fetches, lead cap removed, user continues
+## Key User Action — Upgrade Flow (step by step)
+1. Founder adds a 6th lead → UI blocks save, shows upgrade prompt.
+2. Founder clicks **Upgrade** → Next.js API route creates a Stripe Checkout Session (server-side, secret key never touches browser).
+3. Founder completes payment on Stripe-hosted page.
+4. Stripe fires `checkout.session.completed` webhook → API route verifies signature, sets `plans.status = 'paid'` in Supabase.
+5. Founder is redirected to `/success`; UI re-fetches plan status and unlocks unlimited leads.
 
-## Layer Order
-1. **Data** — schema, constraints, RLS (source of truth)
-2. **App logic** — CRUD, scoring, tier enforcement (runs without AI)
-3. **Smart features** — AI summaries, next-action drafts (additive, removable)
+## Layer Plan
+1. **Data first** — tables, constraints, seed data, RLS policies.
+2. **App logic** — CRUD routes, pipeline status transitions, lead-count gate.
+3. **Smart features** — scoring formula, later: AI re-score via OpenRouter.
 
-The core runs fully if OpenRouter is disabled — scoring is rule-based, summaries just don't appear.
+## Core Without AI
+Scoring falls back to a rule-based formula (status weight + activity count). The app is fully functional with AI switched off.
