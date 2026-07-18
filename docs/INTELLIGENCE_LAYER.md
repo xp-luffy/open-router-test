@@ -1,40 +1,39 @@
 # Intelligence Layer
 
-## Messy Inputs
-- Founder pastes a name + company + email and maybe a note
-- Status changes and activity counts are implicit signals
+## v1 — Rule-Based Only
+No AI in v1. The core app runs entirely on deterministic logic.
 
-## Auto-Structure (v1 rule-based scoring)
+## Messy Inputs (what founders type)
+- Free-text source: "saw you on LinkedIn", "friend told me", "cold email"
+- Inconsistent status words: "maybe", "hot", "waiting"
+
+## Auto-Structure Schema (v1 normalisation)
 ```json
 {
-  "lead_id": "uuid",
-  "score": 72,
-  "score_source": "rule_v1",
-  "score_confidence": 0.65,
-  "score_review_status": "unreviewed",
-  "breakdown": {
-    "status_weight": 40,
-    "activity_count_bonus": 20,
-    "email_present": 12
-  }
+  "source_raw": "saw you on LinkedIn",
+  "source_normalised": "LinkedIn",
+  "status_raw": "hot",
+  "status_normalised": "qualified"
 }
 ```
-
-## Scoring Rules (v1)
-| Signal | Points |
-|---|---|
-| status = qualified | +40 |
-| status = contacted | +20 |
-| each activity logged | +5 (max 20) |
-| email present | +12 |
-| notes > 50 chars | +8 |
+Normalisation is a lookup map in application code — no AI call needed.
 
 ## Events to Track
-- Lead created
-- Status changed
-- Activity logged
-- Score recalculated
+- `lead_created` — source, initial status
+- `status_changed` — from / to / time elapsed
+- `lead_won` — time-to-close, source
+
+## Scoring Rules (rule-based)
+| Signal | Points |
+|---|---|
+| Status = qualified | +20 |
+| Status = negotiating | +40 |
+| Has email | +10 |
+| Source = Referral | +15 |
+
+Score stored as `score_value` on the lead when AI layer is added.
 
 ## v1 vs Later
-**v1:** Rule-based formula, recalculates on every lead save.
-**Later:** OpenRouter LLM re-scores from notes + activity history; confidence rises when LLM and rule scores agree.
+- **v1**: manual status, rule-based score display
+- **Next**: AI suggests next action based on days-since-last-activity
+- **Later**: enrichment API auto-fills company size, LinkedIn profile

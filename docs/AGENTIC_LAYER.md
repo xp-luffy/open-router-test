@@ -2,30 +2,36 @@
 
 ## Risk Levels & Actions
 
-### Low — auto-execute
-- Recalculate lead score on save (`score_tool`)
-- Tag lead status based on activity type (`tag_tool`)
-- Summarise notes into one-liner (`summarise_tool`)
+### Low — Auto (no approval needed)
+- Tag lead source from free-text input
+- Normalise status string on save
+- Append activity row on every status change
 
-### Medium — show draft, one-click approve
-- Create follow-up activity suggestion (`draft_activity_tool`)
-- Update lead status based on inactivity rule (`status_update_tool`)
+### Medium — Light Approval (founder confirms)
+- Draft a follow-up email for a lead (shown as draft, not sent)
+- Suggest status upgrade based on inactivity rule
 
-### High — always requires approval
-- Send follow-up email draft to lead (`send_email_tool`) — v2
-- Trigger Stripe upgrade prompt to user (`charge_prompt_tool`)
+### High — Always Approval
+- Send an email to a lead (requires explicit send button)
+- Initiate a Stripe refund request
 
-### Critical — human only
-- Issue refund
+### Critical — Human Only
 - Delete all leads (bulk)
-- Any legal / data-export action
+- Issue refund / cancel subscription
+- Any legal communication
 
-## Named Tools (v1)
-`score_tool`, `tag_tool`, `summarise_tool`, `draft_activity_tool`
+## Named Tools (v1 + planned)
+| Tool | Risk | v1? |
+|---|---|---|
+| `upsert_lead` | Low | ✓ |
+| `append_activity` | Low | ✓ |
+| `write_audit_log` | Low | ✓ |
+| `create_stripe_session` | High | ✓ |
+| `handle_stripe_webhook` | High | ✓ |
+| `draft_follow_up_email` | Medium | Later |
+| `send_email` | High | Later |
 
 ## Audit Log Fields
-`id, user_id, lead_id, tool_name, action, input_snapshot, output_snapshot, approved_by, executed_at`
+`id, user_id, table_name, record_id, action, payload (jsonb), created_at`
 
-## v1 vs Later
-**v1:** `score_tool` runs server-side on every lead upsert. Others are stubs.
-**Later:** Agent loop polls stale leads, drafts follow-ups, surfaces for approval.
+Every tool call writes an audit row. Agent inherits the authenticated user's permissions — no elevated access.

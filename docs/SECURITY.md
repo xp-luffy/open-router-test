@@ -1,25 +1,26 @@
 # Security
 
-## Secrets
-- `STRIPE_SECRET_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are server-only env vars (Next.js API routes / Edge Functions only).
-- Frontend receives only the Stripe publishable key and Supabase anon key.
-- Never logged, never returned in API responses.
+## Secret Handling
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SUPABASE_SERVICE_ROLE_KEY` live in Vercel environment variables only
+- Next.js API routes (server-side) use secrets; client bundles never see them
+- `NEXT_PUBLIC_` prefix only for genuinely public keys (Supabase anon key, Stripe publishable key)
 
-## Permission Model (v1 → lock-down)
-- v1: permissive RLS (`using (true)`) — demo-safe, no real user data yet.
-- Lock-down sprint: all policies replaced with `auth.uid() = user_id`; service-role key used only in webhook handler.
+## Permission Model
+- **v1**: permissive RLS (demo-first) — no sensitive real data until Sprint 4
+- **Sprint 4**: `auth.uid() = user_id` RLS policies replace v1 policies; service-role key used only in webhook handler, never in client
+- Stripe webhook validated with `stripe.webhooks.constructEvent()` — unsigned requests rejected with 400
 
 ## Approved Tools Rule
-Agent may only call named tools listed in `AGENTIC_LAYER.md`. No `run_any` / `eval` / raw SQL execution from agent context.
-
-## Stripe Webhook
-- Signature verified with `stripe.webhooks.constructEvent` before any DB write.
-- Replay protection: `stripe_session_id` stored; duplicate events are no-ops.
+Only named tools in `AGENTIC_LAYER.md` may be invoked. No `run_any`, `eval`, or dynamic code execution. Every tool call produces an `audit_logs` row.
 
 ## Audit Principle
-Every score recalculation, status change, and payment event writes a row to `activities` or the audit log. No meaningful action is silent.
+Every write (insert / update / delete) through the API appends an `audit_logs` row server-side. Client cannot skip this — log is written in the same DB transaction.
 
-## Known Limitations (v1)
-- No rate limiting on lead creation (add in lock-down sprint).
-- No CSRF token on API routes (mitigated by Supabase JWT at lock-down).
-- Penetration testing not performed — recommend before real user data ingestion.
+## Pre-Launch Security Checklist
+- [ ] `npm audit` — no high/critical vulnerabilities
+- [ ] No secrets in git history (`git log` + `gitleaks` scan)
+- [ ] Stripe webhook signature verified before any DB write
+- [ ] Rate-limiting on `/api/leads` (POST) and `/api/webhooks/stripe`
+- [ ] XSS: all user input rendered via React (no `dangerouslySetInnerHTML`)
+- [ ] RLS owner policies verified: User A query returns 0 rows for User B's leads
+- **Cannot verify without external test**: blind SSRF, third-party dependency supply chain — flag for human review before production launch

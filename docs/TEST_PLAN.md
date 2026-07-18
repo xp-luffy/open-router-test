@@ -1,26 +1,32 @@
 # Test Plan
 
-## Success Scenario (manual walkthrough)
-1. Visit `/` (logged out) → lead list loads with ≥3 seeded rows. ✓
-2. Click **New Lead** → fill name, company, email, status=New → Save → appears in list with score. ✓
-3. Click lead → detail view shows activity log → add a Note → activity appears instantly. ✓
-4. Change status to Qualified → score increases; activity row logged. ✓
-5. Create leads until 5 exist → try to create #6 → blocked with upgrade prompt. ✓
-6. Click **Upgrade** → redirected to Stripe Checkout (test mode). ✓
-7. Enter card `4242 4242 4242 4242`, any expiry/CVC → complete payment. ✓
-8. Redirected to `/success` → plan shows **Paid**. ✓
-9. Create lead #6 → saves successfully. ✓
+## V1 Success Scenario (walk this in order)
+1. Open live URL as a logged-out stranger → lead list renders with 5 demo leads, no login wall
+2. Click **Add Lead** → fill name="Test Founder", email, company, source="LinkedIn", status="new" → submit → row appears in list immediately
+3. Click the new lead → detail page loads with correct fields
+4. Change status to "qualified" → activity feed shows "status_changed: new → qualified" with timestamp
+5. Add a note → activity feed appends "note_added" entry
+6. Click **Delete** on the test lead → confirmation dialog → confirm → lead removed from list and DB
+7. Add 5 leads total (free tier cap) → try to add a 6th → "Upgrade to add more leads" banner appears, form disabled
+8. Click **Upgrade** → `/upgrade` page loads with plan comparison
+9. Click **Start paid plan** → redirected to Stripe Checkout (test mode)
+10. Enter card 4242 4242 4242 4242, any future expiry, any CVC → complete payment
+11. Redirected to `/success` → UI reflects paid plan → Add Lead form re-enabled → CSV export button visible
+12. Click **Export CSV** → file downloads with correct headers and lead data
 
 ## Empty States
-- New session with 0 leads → empty state with **Add your first lead** CTA.
-- Lead with no activities → "No activity yet" placeholder.
+- New Supabase project with no seed data → lead list shows "Add your first lead" empty state
+- Lead with no activity → activity feed shows "No activity yet"
+- Upgrade page before payment → plan = 'free' correctly shown
 
 ## Error Cases
-- Stripe API unreachable → toast: "Payment service unavailable, try again."
-- DB insert fails → toast: "Couldn't save lead — please retry."
-- Duplicate Stripe webhook event → idempotency check; no double-upgrade.
+- Submit Add Lead form with blank name → inline validation error, no DB write
+- Navigate to `/leads/non-existent-id` → 404 page with "Lead not found"
+- Stripe webhook sent without valid signature → returns 400, no DB change
+- API route called without auth (Sprint 4+) → returns 401, no data leaked
 
-## Security Checks
-- Open browser DevTools → confirm no `STRIPE_SECRET_KEY` or `SERVICE_ROLE_KEY` in network responses.
-- Manually POST to `/api/checkout` with malformed body → returns 400, no stack trace exposed.
-- Stripe webhook with wrong signature → returns 400, no DB write.
+## Regression Check (run after every sprint)
+- Lead list still loads and shows seeded rows
+- Add/edit/delete still persists correctly
+- Stripe test payment still flips `lead_access.plan` to 'paid'
+- No `console.error` in browser devtools during normal use

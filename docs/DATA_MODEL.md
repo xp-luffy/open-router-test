@@ -3,16 +3,13 @@
 ## leads
 | Field | Type | Notes |
 |---|---|---|
-| id | uuid PK | |
-| user_id | uuid nullable | owner (scoped at lock-down) |
-| name | text not null | |
-| company | text | |
+| id | uuid PK | gen_random_uuid() |
+| user_id | uuid nullable | owner; FK added at lock-down |
+| name | text NOT NULL | |
 | email | text | |
-| status | text | new / contacted / qualified / won / lost |
-| score | numeric | AI field |
-| score_source | text | 'rule_v1' or 'openrouter' |
-| score_confidence | numeric | 0–1 |
-| score_review_status | text | default 'unreviewed' |
+| company | text | |
+| source | text | LinkedIn / Referral / Cold outreach / etc. |
+| status | text NOT NULL default 'new' | new / qualified / negotiating / won / lost |
 | notes | text | |
 | created_at | timestamptz | |
 
@@ -20,21 +17,38 @@
 | Field | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
-| lead_id | uuid FK → leads.id | |
 | user_id | uuid nullable | |
-| type | text | call / email / note / status_change |
-| body | text | |
+| lead_id | uuid FK → leads.id | cascade delete |
+| action | text NOT NULL | e.g. 'status_changed', 'note_added' |
+| old_value | text | |
+| new_value | text | |
 | created_at | timestamptz | |
 
-## plans
+## audit_logs
 | Field | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
 | user_id | uuid nullable | |
-| status | text | 'free' / 'paid' |
-| stripe_customer_id | text | |
-| stripe_session_id | text | |
+| table_name | text | |
+| record_id | uuid | |
+| action | text | insert / update / delete |
+| payload | jsonb | full diff snapshot |
 | created_at | timestamptz | |
 
+## lead_access
+| Field | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| user_id | uuid nullable | tied to auth user at lock-down |
+| stripe_customer_id | text | |
+| stripe_subscription_id | text | |
+| plan | text default 'free' | free / paid |
+| paid_at | timestamptz | |
+| created_at | timestamptz | |
+
+## AI Fields (future)
+Any AI-generated score on a lead stores: `score_value numeric`, `score_source text`, `score_confidence numeric`, `score_review_status text default 'unreviewed'`.
+
 ## RLS
-All tables: v1 permissive policies (select/all = true). Replaced with `auth.uid() = user_id` at lock-down sprint.
+- v1: permissive read + write for all tables (demo-first)
+- Sprint 4: replaced with `auth.uid() = user_id` owner-scoped policies
