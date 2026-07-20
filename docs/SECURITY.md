@@ -1,25 +1,35 @@
 # Security
 
-## Secrets
-- `SUPABASE_SERVICE_ROLE_KEY` and `STRIPE_SECRET_KEY` live only in Vercel environment variables — never in frontend code or committed to git
-- `STRIPE_WEBHOOK_SECRET` used server-side only to verify webhook signatures
-- Next.js server components and API routes are the only callers of secrets
+## Secret handling
+- Stripe secret key + webhook signing secret → Supabase Edge Function env vars or Vercel env vars only
+- Never committed to repo, never exposed in frontend
+- Frontend uses Stripe publishable key only (safe to expose)
+- Supabase service-role key → server-side API routes only, never in client bundle
+- Anon key → safe for client (RLS-protected)
 
-## Permission Model
-- v1: permissive RLS (demo-first) — all reads/writes open, no user data yet
-- Lock-down sprint: `auth.uid() = user_id` owner policies replace v1 policies before any real user data is stored
-- Stripe webhook endpoint verifies `stripe-signature` header on every request; unauthenticated calls are rejected
+## Permission model (v1 → end state)
 
-## Approved Tools Rule
-- Agents and API routes call only named functions (`db.insert_lead`, `stripe.create_checkout_session`, etc.)
-- No `eval`, `exec`, or dynamic SQL string construction
-- No `run_any` / `send_any` patterns permitted
+### v1 (demo-first)
+- All tables have permissive RLS: anyone can read/write
+- This is intentional for demo — no login wall
+- Lead limit (10 free) enforced server-side via count query, not client trust
 
-## Audit Principle
-- Every status change, payment event, and delete is written to `audit_logs` with actor, timestamp, old + new value
-- Audit rows are append-only (no update/delete policy on `audit_logs`)
+### Lock-down sprint (end state)
+- `leads`, `lead_activities`: `auth.uid() = user_id` on all policies
+- `access_grants`: user reads own grant only
+- No anonymous writes after lock-down
 
-## What Cannot Be Verified Without External Review
-- Full OWASP injection surface of third-party Supabase client
-- Stripe webhook replay-attack window beyond signature TTL
-- npm supply-chain for indirect dependencies (run `npm audit` and address high/critical findings before launch)
+## Approved-tools rule
+- Only named, server-side API routes interact with the DB
+- No raw SQL from client; all writes go through typed API handlers
+- (Later) Agent tools are a fixed allow-list — never raw execution
+
+## Audit principle
+- Every payment event (checkout created, payment succeeded, access upgraded) is logged
+- (Later) every agentic action is logged with actor, target, timestamp
+- Logs are append-only; no delete policy in v1
+
+## What could NOT be verified in v1
+- Rate-limiting on lead creation (add before real users)
+- Prompt-injection resistance (no AI in v1, so N/A now)
+- CSRF on forms (Next.js server actions mitigate; verify before production)

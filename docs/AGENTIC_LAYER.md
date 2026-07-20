@@ -1,35 +1,30 @@
 # Agentic Layer
 
-## Risk Levels & Actions
+## v1: NONE
+No agentic actions in v1. All actions are direct user-initiated CRUD + Stripe redirect.
 
-### Low — auto-execute (no approval)
-- Tag a lead's source from URL param on capture
-- Compute and update lead score on status change
-- Mark `converted_at` timestamp when status set to `converted`
+## Later: Draftable actions (low risk — auto)
+- **Draft follow-up email** — reads lead context, generates draft text → stored in `lead_activities` with `activity_type = 'email_draft'`, `review_status = 'unreviewed'` → user edits and sends manually
+- **Auto-tag priority** — rule-based, updates `leads.priority` → logged in audit
+- **Summarise activity history** — reads all activities for a lead, produces a summary string
 
-### Medium — light approval (founder confirms)
-- Draft a follow-up email for a lead (shown as draft, not sent)
-- Suggest a status change based on days since last update
+## Later: Executable after approval (medium risk)
+- **Update lead stage** — agent suggests stage change → user clicks Approve → DB update
+- **Create follow-up task** — agent drafts → user approves → row inserted
 
-### High — approval required before execution
-- Send any external message or email on behalf of the founder
-- Create a Stripe refund
+## Later: Human-only (critical risk)
+- **Send email to lead** — never auto-send; user must manually copy/send
+- **Delete a lead** — irreversible, human-only
+- **Process refund** — Stripe refund, human-only
 
-### Critical — human only, never automated
-- Delete all leads
-- Issue refunds > $100
-- Any legal or compliance action
+## Named tools (later)
+- `draft_follow_up_email(lead_id)` — returns draft text, no side effects
+- `suggest_stage_change(lead_id)` — returns suggestion, no write
+- `summarise_lead_history(lead_id)` — returns summary string
 
-## Named Tools (approved list)
-- `db.insert_lead` — writes one lead row
-- `db.update_lead_status` — updates status + sets converted_at if applicable
-- `stripe.create_checkout_session` — initiates payment
-- `stripe.verify_webhook` — validates incoming Stripe event
+Never expose raw query execution or arbitrary API calls.
 
-## Audit Log Fields
-`action`, `table_name`, `record_id`, `old_value jsonb`, `new_value jsonb`, `actor_id`, `created_at`
+## Audit-log fields (created at lock-down sprint)
+`id, user_id, action, target_table, target_id, detail_json, created_at`
 
-## v1 vs Later
-- v1: low-risk auto-actions only (scoring, timestamps)
-- Next: draft email suggestion (medium)
-- Later: full agentic follow-up queue
+Every approved agentic action writes a row before executing.

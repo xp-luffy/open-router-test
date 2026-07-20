@@ -1,82 +1,49 @@
-# Tasks
+# Tasks & Sprints
 
-## Sprint 1 — DB, seed data, lead list (demo-first)
-**Goal:** The `/leads` page renders with realistic demo leads for any visitor — no login required.
+## Sprint 1 — Core pipeline (v1 functional milestone)
+**Goal**: Lead CRUD + pipeline board working with seed data, no login.
+- [ ] Create `leads` + `lead_activities` + `access_grants` tables with permissive RLS + seed data
+- [ ] Build pipeline board: leads grouped by stage, seed rows visible on load
+- [ ] Add lead form (modal) → POST → DB insert → board updates
+- [ ] Edit lead (inline or modal) → PATCH → board updates
+- [ ] Delete lead → DELETE with confirm → board updates
+- [ ] Change stage (click to cycle or dropdown) → PATCH → board updates
+- [ ] Log activity against a lead → POST to `lead_activities`
+- [ ] Empty state: "No leads yet — add your first"
+- [ ] Error state on failed save: toast + retry
+- [ ] Loading state: skeleton cards while fetching
 
-- [ ] Run migration SQL in Supabase (leads + payments tables, seed 5 leads)
-- [ ] Scaffold Next.js 14 project, connect Supabase client
-- [ ] Build `/leads` page: table columns — Name, Email, Source, Status, Created
-- [ ] Status badge component (color per status)
-- [ ] Loading skeleton, empty state ("No leads yet — add your first"), error banner
-- [ ] Confirm seeded rows visible at `localhost:3000/leads` without login
+**DoD**: A stranger opens the URL, sees 5 seed leads across stages, adds a new lead, changes its stage, logs an activity, and deletes one — all persisted to DB.
 
-**Definition of Done:** `/leads` returns 200 for a logged-out browser and displays ≥ 5 seeded leads with correct status badges.
+## Sprint 2 — Payment + free-tier gate
+**Goal**: Free limit + Stripe Checkout → paid access.
+- [ ] Server-side lead count check: if `access_grants.tier = 'free'` and lead count ≥ 10, block new leads
+- [ ] Paywall banner: "You've hit 10 leads — upgrade for unlimited"
+- [ ] Stripe Checkout session creation (server route, test mode)
+- [ ] Stripe webhook → updates `access_grants` to `tier = 'paid'`
+- [ ] Success redirect → board reloads with limit lifted
+- [ ] Create `access_grants` row for new visitors (tier = 'free')
 
----
+**DoD**: With 10+ leads, new-lead form is blocked. Click Upgrade → Stripe test checkout → pay → limit lifted → can add lead 11.
 
-## Sprint 2 — Core engine: add, edit, delete leads ✦ v1 functional
-**Goal:** Full lead CRUD works against the real database.
+## Sprint 3 — Lock it down (auth + per-user isolation)
+**Goal**: Login, per-user data, secure RLS.
+- [ ] Supabase Auth: signup + login pages
+- [ ] Migrate RLS: replace permissive policies with `auth.uid() = user_id`
+- [ ] Associate existing seed leads with a demo user or remove them
+- [ ] `access_grants` scoped to `auth.uid()`
+- [ ] Stripe checkout passes `user_id` → webhook writes correct grant
+- [ ] Logout works, redirects to a logged-out state
 
-- [ ] "Add Lead" slide-over form: name (required), email (required), source (dropdown), notes
-- [ ] Submit → `INSERT` into `leads` → list re-fetches → new row appears
-- [ ] Click lead row → edit modal: change status, update notes, save
-- [ ] Delete button with confirmation dialog → `DELETE` from `leads`
-- [ ] `converted_at` auto-set when status changes to `converted`
-- [ ] Toast notifications for success and failure
-- [ ] All five UI states tested: loading, empty, partial, error, ready
+**DoD**: Two logged-in users see only their own leads. Free limit applies per user. Paid upgrade works per user.
 
-**Definition of Done:** Add a lead, edit its status to `converted`, delete another lead — all changes survive a full page refresh. No dead buttons.
-
----
-
-## Sprint 3 — Stripe Checkout + paid-tier gate
-**Goal:** A real (sandbox) payment unlocks full access; the DB records the payment.
-
-- [ ] Create Stripe product + price in test/sandbox mode
-- [ ] `POST /api/checkout` — create Checkout session, return redirect URL
-- [ ] `/success` page shown after Stripe redirect
-- [ ] `POST /api/stripe-webhook` — verify signature, insert `payments` row with `status = paid`
-- [ ] App reads `payments` table; show upgrade banner if no paid record
-- [ ] Gate "Add Lead" button behind paid status (free visitors see demo list + upgrade prompt)
-- [ ] Test with Stripe test card 4242 4242 4242 4242 — confirm DB row written
-
-**Definition of Done:** Complete sandbox checkout → payment row in DB with `status = paid` → "Add Lead" unlocks → add a lead → row persists.
-
----
-
-## Sprint 4 — Lock it down (auth + per-user RLS)
-**Goal:** Real user accounts; each founder sees only their own leads.
-
-- [ ] Enable Supabase Auth (email + magic link)
-- [ ] Sign-up / login pages at `/login`
-- [ ] On lead creation and payment, write `user_id = auth.uid()`
-- [ ] Replace v1 permissive RLS policies with `auth.uid() = user_id` owner policies
-- [ ] Demo seed rows remain visible to anonymous visitors (user_id = null, read-only)
-- [ ] Redirect unauthenticated users to `/login` when attempting write actions
-
-**Definition of Done:** User A cannot see User B's leads. Anonymous visitor still sees demo rows. Auth flow completes without error.
-
----
-
-## Sprint 5 — Security pass + production deploy
-**Goal:** App is live, secrets are safe, and the stranger test passes.
-
-- [ ] Move all secrets to Vercel env vars; verify none appear in browser bundle
-- [ ] `npm audit` — fix any high or critical findings
-- [ ] Rate-limit `/api/checkout` and `/api/stripe-webhook` (e.g. upstash/ratelimit)
-- [ ] Walk full journey as logged-out stranger on live Vercel URL
-- [ ] Switch Stripe keys to live mode; confirm live payment end-to-end
-- [ ] Document any security items that require external review
-
-**Definition of Done:** Live URL returns 200 for a stranger. One real payment completes. No secret visible in DevTools network tab.
-
----
-
-## Gantt (sprint → feature)
+## Text Gantt
 ```
-Sprint 1  |--- DB + seed + lead list
-Sprint 2  |--- Add / edit / delete leads  [v1 functional ✦]
-Sprint 3  |--- Stripe Checkout + payment gate
-Sprint 4  |--- Auth + RLS lock-down
-Sprint 5  |--- Security pass + live deploy
+Sprint 1: Core pipeline (DB + CRUD + board)     ████████
+Sprint 2: Payment + free-tier gate               ████████
+Sprint 3: Lock it down (auth + RLS)              ████████
 ```
+
+**v1 functional milestone**: end of Sprint 1 (pipeline usable end-to-end).
+**Payment milestone**: end of Sprint 2 (can take a real test payment).
+**Secure milestone**: end of Sprint 3 (per-user isolation).

@@ -1,31 +1,38 @@
 # Architecture
 
 ## Stack
-- **Frontend:** Next.js 14 (App Router) on Vercel
-- **Database + Auth:** Supabase (Postgres, RLS, Auth)
-- **Payments:** Stripe Checkout + webhooks
-- **Styling:** Tailwind CSS
+- **Frontend**: Next.js (App Router) + TailwindCSS, deployed on Vercel
+- **Database**: Supabase (Postgres + RLS)
+- **Payments**: Stripe Checkout (test mode in v1)
+- **Auth**: Supabase Auth — added in lock-down sprint, NOT v1
 
-## Now vs Later
-| Now (v1) | Later |
-|---|---|
-| Lead CRUD | Team seats |
-| Stripe one-time or monthly tier | Usage analytics |
-| Permissive RLS (demo-first) | Owner-scoped RLS (lock-down sprint) |
-| Manual status updates | AI follow-up drafts |
+## Build now vs later
 
-## Key User Action — Flow
-1. Visitor loads `/leads` → Supabase query returns leads (seeded rows if new)
-2. Visitor clicks **Upgrade** → POST `/api/checkout` → Stripe Checkout session created → redirect
-3. Stripe redirects back with `session_id` → success page shown
-4. Stripe fires `checkout.session.completed` webhook → `/api/stripe-webhook` verifies signature → inserts `payments` row with `status = paid`
-5. App reads payment record → unlocks **Add Lead** button
-6. User submits lead form → POST to Supabase `leads` table → list re-fetches → new row visible
+**Now (v1)**
+- Lead pipeline board + CRUD (no login)
+- Activity logging
+- Free-tier lead limit enforcement (server-side)
+- Stripe Checkout → access upgrade
+- Seed demo data so app is instantly viewable
 
-## Layer Order
-1. **Data first** — schema, RLS, seed data
-2. **App logic** — CRUD, payment gate, webhook handler
-3. **Smart features** — scoring, AI drafts (later sprints)
+**Later**
+- User accounts + per-user lead isolation (RLS owner policies)
+- AI lead scoring + enrichment
+- Email follow-up drafts
+- Team collaboration
 
-## AI-off Guarantee
-All lead tracking and payment gating run entirely on Postgres + Stripe. No AI call is in the critical path. Removing AI features leaves a fully functional app.
+## Key user action flow
+1. Visitor opens URL → pipeline renders with seed leads
+2. Clicks "Add Lead" → form modal → saves to `leads` table
+3. Drags/clicks lead to change stage → updates `leads.stage`
+4. Logs an activity → inserts into `lead_activities`
+5. At 10 leads, paywall banner appears → click "Upgrade"
+6. Stripe Checkout opens → test card → success → `access_grants` updated → limit lifted
+
+## Layer plan
+1. **Data**: `leads`, `lead_activities`, `access_grants` tables + seed rows + permissive RLS
+2. **App logic**: CRUD API routes, stage transitions, lead-count check, Stripe webhook
+3. **Smart features** (later): lead scoring, enrichment, follow-up suggestions
+
+## Why the core runs without AI
+The pipeline is pure CRUD + a server-side count check + Stripe redirect. No AI call is needed to add, move, or view leads. AI scoring is additive and can be switched off with zero impact on the core loop.

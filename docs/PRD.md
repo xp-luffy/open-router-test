@@ -1,31 +1,31 @@
-# PRD — open-router-test
+# PRD — LeadTracker
 
 ## Problem
-Founders lose track of leads across spreadsheets and inboxes. They need one simple place to capture, qualify, and follow up — and they'll pay for a tool that removes that friction immediately.
+Founders track leads in spreadsheets — messy, no stage pipeline, no follow-up nudges. They need a dead-simple lead pipeline they can open, use, and pay for in one sitting.
 
-## Target User
-Early-stage founders managing their own sales pipeline (1–5 person team).
+## Target user
+Solo founder or small team (1–3 people) managing 5–50 outbound leads at a time.
 
-## Core Objects
-- **Lead** — the central record: person, contact info, source, status, notes
-- **Payment** — Stripe checkout result that unlocks full access
+## Core objects
+- **Lead** — a company/person you're selling to. Fields: company, contact_name, contact_email, stage, deal_value, source, notes, priority.
+- **LeadActivity** — a logged interaction (email, call, meeting). Fields: lead_id, activity_type, summary, occurred_at.
+- **AccessGrant** — tracks whether the current visitor has paid access (free vs paid tier).
 
-## MVP Checklist (v1 must-haves)
-- [ ] Lead list page visible without login (seeded demo data)
-- [ ] Add / edit / delete a lead (name, email, source, status, notes)
-- [ ] Status workflow: new → contacted → qualified → converted / lost
-- [ ] Stripe Checkout (test mode) — one paid tier
-- [ ] Webhook writes payment record; paid status gates "Add Lead"
-- [ ] Empty, loading, and error states on every screen
-- [ ] No secrets in the frontend bundle
+## MVP (v1) — checklist
+- [ ] Lead pipeline board: list of leads grouped by stage (New → Contacted → Qualified → Won/Lost)
+- [ ] Add / edit / delete a lead (persists to DB, not localStorage)
+- [ ] Log an activity against a lead
+- [ ] Free tier: up to 10 leads, then paywall banner
+- [ ] Checkout button → Stripe Checkout (test mode) → upgrades to paid tier (unlimited leads)
+- [ ] App renders with seed demo data — no login required to see the pipeline
+- [ ] Empty state when no leads exist; error state on failed save
 
-## Non-Goals (v1)
-- Team accounts / multi-user sharing
-- Email sending or sequences
-- AI suggestions or scoring
-- Mobile app
+## Non-goals (v1)
+- User accounts / login (deferred to lock-down sprint)
+- Team collaboration, multiple users
+- Email automation / sending
+- AI lead scoring / enrichment (later phase)
+- Custom pipeline stages
 
-## Success Criteria
-**End-to-end scenario:** A founder opens the live URL, sees 5 demo leads, clicks "Upgrade", completes a Stripe test payment, is redirected back, and can now add a real lead — which appears in the list instantly and persists on refresh.
-
-**Definition of Done:** That exact journey completes without error on the deployed URL. The payment record exists in the database. The new lead row is real (not seed data). A logged-out stranger on a fresh browser sees the demo list and the upgrade prompt.
+## Success criteria
+A stranger opens the URL, sees a pipeline with demo leads, adds a new lead, hits the 10-lead free limit, clicks Checkout, completes a Stripe test payment, and their lead limit is lifted — all in one session, no login needed for the demo.

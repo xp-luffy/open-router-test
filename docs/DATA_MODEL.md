@@ -3,31 +3,47 @@
 ## leads
 | Field | Type | Notes |
 |---|---|---|
-| id | uuid PK | gen_random_uuid() |
-| user_id | uuid nullable | set at lock-down sprint |
-| name | text NOT NULL | |
-| email | text NOT NULL | |
-| source | text | LinkedIn, Referral, Cold email, etc. |
-| status | text NOT NULL default 'new' | new / contacted / qualified / converted / lost |
-| notes | text | free-form |
-| converted_at | timestamptz | set when status → converted |
-| created_at | timestamptz NOT NULL | default now() |
+| id | uuid PK | default gen_random_uuid() |
+| user_id | uuid | nullable — owner scoping added at lock-down |
+| company | text | not null |
+| contact_name | text | |
+| contact_email | text | |
+| stage | text | not null, default 'new' — one of: new, contacted, qualified, won, lost |
+| deal_value | numeric | nullable |
+| source | text | nullable |
+| notes | text | nullable |
+| priority | text | default 'medium' — low/medium/high |
+| created_at | timestamptz | default now() |
 
-## payments
+**RLS (v1)**: permissive read + write for demo. Lock-down: `auth.uid() = user_id`.
+
+## lead_activities
 | Field | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
-| user_id | uuid nullable | set at lock-down sprint |
-| stripe_session_id | text | from Stripe Checkout |
-| stripe_customer_id | text | from webhook event |
-| amount_cents | integer | |
-| currency | text default 'usd' | |
-| status | text NOT NULL default 'pending' | pending / paid / failed |
-| created_at | timestamptz NOT NULL | |
+| lead_id | uuid | not null, references leads(id) |
+| user_id | uuid | nullable |
+| activity_type | text | email, call, meeting, note |
+| summary | text | |
+| occurred_at | timestamptz | default now() |
+| created_at | timestamptz | default now() |
 
-## AI fields (future — lead scoring)
-When added: `score numeric`, `score_source text`, `score_confidence numeric`, `score_review_status text default 'unreviewed'`.
+**RLS (v1)**: permissive. Lock-down: `auth.uid() = user_id`.
 
-## RLS
-- v1: permissive read + write for all (demo-first)
-- Lock-down sprint: replace with `auth.uid() = user_id` owner policies
+## access_grants
+| Field | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| user_id | uuid | nullable |
+| tier | text | 'free' or 'paid' |
+| stripe_session_id | text | nullable |
+| paid_at | timestamptz | nullable |
+| created_at | timestamptz | default now() |
+
+**RLS (v1)**: permissive. Lock-down: `auth.uid() = user_id`.
+
+## AI fields (later phase)
+When lead scoring is added, store: `score_value numeric`, `score_source text`, `score_confidence numeric`, `review_status text default 'unreviewed'` on leads.
+
+## audit_logs (later)
+Created at lock-down sprint to track sensitive actions (payment, data export).

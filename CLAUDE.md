@@ -1,6 +1,6 @@
 # open-router-test
 
-A focused lead-tracking tool for founders with a built-in paid tier — capture leads, track status, and pay for access from day one.
+A paid lead-tracking tool for founders: log leads, move them through stages, and gate access behind a simple Stripe checkout — core CRUD works without login (demo data), payment and per-user isolation come in a later lock-down sprint.
 
 ## ⚠️ READ THIS BEFORE WRITING ANY CODE
 A complete, correct plan for this app is already committed in `/docs`. Do **not** start
@@ -14,7 +14,6 @@ build the wrong thing (e.g. a marketing landing page). Open the plan and build f
 - `docs/AGENTIC_LAYER.md`
 - `docs/SECURITY.md`
 - `docs/TASKS.md`
-- `docs/TEST_PLAN.md`
 
 ## Build rules (binding — follow in order)
 1. **Read first:** open `docs/PRD.md`, `docs/DATA_MODEL.md`, `docs/ARCHITECTURE.md`, and
