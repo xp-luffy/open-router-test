@@ -1,39 +1,29 @@
 # Intelligence Layer
 
-## Messy Input
-Founder pastes a name, company name, and email — no structure guaranteed.
+## Messy Input → Structured Data
+Founders paste or type lead info loosely. The form enforces structure at entry: name, email, source (dropdown), status (enum). No free-form parsing needed in v1.
 
-## Auto-Structure (on insert)
-```json
-{
-  "name": "Sarah Chen",
-  "company": "Acme Corp",
-  "email": "sarah@acmecorp.com",
-  "status": "new",
-  "score": 62,
-  "score_source": "rules_v1",
-  "score_confidence": 0.75,
-  "score_review_status": "unreviewed"
-}
-```
+## Events to Track (v1)
+- `lead.created` — source, timestamp
+- `lead.status_changed` — from, to, lead_id
+- `payment.completed` — amount, stripe_session_id
 
-## Scoring Rules (v1, rule-based)
+## Scoring Rules (rule-based first, no AI)
 | Signal | Points |
 |---|---|
-| Company name present | +20 |
-| Business email domain (not gmail/yahoo) | +25 |
-| Status = qualified | +30 |
-| Status = contacted | +15 |
-| Notes present | +5 |
+| Source = Referral | +20 |
+| Source = Inbound | +15 |
+| Status = qualified | +10 |
+| Notes length > 50 chars | +5 |
 
-Max = 80 rule points; confidence set to `0.75` for rule-based.
+Score stored as `score numeric` on `leads` with `score_source = 'rule_engine_v1'`, `score_confidence = 1.0`, `score_review_status = 'unreviewed'`.
 
-## Events to Track
-- Lead created
-- Lead status changed
-- Score updated
-- Payment completed
+## What Gets Ranked
+- Lead list default sort: score DESC, then created_at DESC
 
 ## v1 vs Later
-**v1:** Postgres trigger computes score on insert/update using rules above
-**Later:** OpenAI call re-scores with company context; sets `score_source = 'gpt-4o'`, `score_confidence` from logprobs, `score_review_status = 'pending'`
+| v1 | Later |
+|---|---|
+| Rule-based score | LLM-suggested follow-up action |
+| Manual status | Auto-status from email reply detection |
+| Static source dropdown | AI extraction from pasted text |

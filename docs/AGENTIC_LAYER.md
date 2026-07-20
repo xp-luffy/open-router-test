@@ -2,30 +2,34 @@
 
 ## Risk Levels & Actions
 
-### Low — auto-execute
-- Score lead on insert (Postgres trigger)
-- Tag lead status from form submit
+### Low — auto-execute (no approval)
+- Tag a lead's source from URL param on capture
+- Compute and update lead score on status change
+- Mark `converted_at` timestamp when status set to `converted`
 
-### Medium — light approval
-- Bulk-update lead status (UI confirmation dialog)
+### Medium — light approval (founder confirms)
+- Draft a follow-up email for a lead (shown as draft, not sent)
+- Suggest a status change based on days since last update
 
-### High — always approval
-- Initiate Stripe Checkout session (user explicitly clicks Pay)
-- Send payment receipt email (v2)
+### High — approval required before execution
+- Send any external message or email on behalf of the founder
+- Create a Stripe refund
 
-### Critical — human only
-- Issue refund
-- Delete payment record
-- Any bulk-delete of leads
+### Critical — human only, never automated
+- Delete all leads
+- Issue refunds > $100
+- Any legal or compliance action
 
-## Named Tools (v1)
-- `leads.create` — insert validated lead row
-- `leads.update_status` — change status field only
-- `payments.create_checkout_session` — server-side Stripe session
-- `payments.activate` — webhook handler, marks payment active
+## Named Tools (approved list)
+- `db.insert_lead` — writes one lead row
+- `db.update_lead_status` — updates status + sets converted_at if applicable
+- `stripe.create_checkout_session` — initiates payment
+- `stripe.verify_webhook` — validates incoming Stripe event
 
-## Audit Log Fields (added at lock-down sprint)
-`id, actor_id, action, object_type, object_id, payload_json, created_at`
+## Audit Log Fields
+`action`, `table_name`, `record_id`, `old_value jsonb`, `new_value jsonb`, `actor_id`, `created_at`
 
-## v1 Scope
-Only auto-scoring and the Stripe checkout flow. Approval queues and AI-initiated actions are v2.
+## v1 vs Later
+- v1: low-risk auto-actions only (scoring, timestamps)
+- Next: draft email suggestion (medium)
+- Later: full agentic follow-up queue

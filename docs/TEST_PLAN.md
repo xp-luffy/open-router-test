@@ -1,31 +1,32 @@
 # Test Plan
 
-## Success Scenario (manual walkthrough)
-1. Open live URL — lead list loads with 5 seeded leads, no login prompt
-2. Click "Add Lead" → fill name=Test User, company=Acme, email=test@acme.com → Submit
-3. Confirm new lead appears in list with a computed score (0–100)
-4. Add 5 more leads until count = 6 → expect upgrade banner / blocked
-5. Click "Upgrade" → Stripe Checkout opens in test mode
-6. Enter card `4242 4242 4242 4242`, any future date, any CVC → Pay
-7. Redirected to `/success` — confirm success message
-8. Return to lead list — all leads visible, 6th lead saves cleanly
-9. Check Supabase `payments` table — row with `status = active` exists
+## V1 Success Scenario (manual walkthrough)
+1. Open `<live-url>/leads` in a private browser window (not logged in)
+2. **Expect:** Lead list loads with ≥ 5 demo rows; status badges visible; no login wall
+3. Click **Upgrade** banner
+4. **Expect:** Redirected to Stripe Checkout (test mode)
+5. Enter card `4242 4242 4242 4242`, any future expiry, any CVC → complete payment
+6. **Expect:** Redirected to `/success` page; no error
+7. Return to `/leads`
+8. **Expect:** Upgrade banner gone; **Add Lead** button visible
+9. Click **Add Lead** → fill name = "Test Founder", email = `test@example.com`, source = "Cold email" → Save
+10. **Expect:** New row appears in list immediately; toast shows "Lead added"
+11. Refresh the page
+12. **Expect:** "Test Founder" row still present (not a fake insert)
+13. Check Supabase `payments` table — **Expect:** one row with `status = paid` and correct `stripe_session_id`
 
 ## Empty State
-- Delete all leads → list shows "No leads yet. Add your first lead." with Add button
+- Delete all non-seed leads → **Expect:** empty state message "No leads yet — add your first" with CTA button
 
 ## Error Cases
-- Submit Add Lead form with empty name → inline validation error, no DB write
-- Stripe webhook with bad signature → returns 400, no DB write, error logged
-- `/api/leads` called with malformed body → returns 422, UI shows "Something went wrong"
+- Submit Add Lead form with blank email → **Expect:** inline validation error, no DB call
+- Kill network, submit form → **Expect:** error toast "Failed to save lead — please try again"; no silent failure
+- POST fake payload to `/api/stripe-webhook` without valid signature → **Expect:** 400 response, no DB write
 
-## Loading States
-- Simulate slow network → spinner shown on lead list fetch and on form submit
-
-## Payment Verification
-- Stripe Dashboard → test payments → confirm session appears
-- Confirm `payments` row in Supabase with matching `stripe_session_id`
+## Payment Gate
+- In a fresh session with no payment record → **Expect:** Add Lead button is disabled/hidden; upgrade banner shown
+- After payment → **Expect:** button enabled, banner gone
 
 ## Security Spot-Check
-- View page source / network tab → confirm no `STRIPE_SECRET_KEY` or `SUPABASE_SERVICE_ROLE_KEY` visible
-- Stripe webhook: replay request without signature header → expect 400
+- Open DevTools → Network → inspect any API response: confirm no `SUPABASE_SERVICE_ROLE_KEY` or `STRIPE_SECRET_KEY` present
+- Confirm `stripe-signature` rejection returns 400 (test with curl and wrong secret)

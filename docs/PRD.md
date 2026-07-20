@@ -1,31 +1,31 @@
 # PRD — open-router-test
 
 ## Problem
-Founders waste time manually tracking leads with no visibility into which ones are worth pursuing. They need a dead-simple paid tool that captures, scores, and surfaces the leads most likely to convert.
+Founders lose track of leads across spreadsheets and inboxes. They need one simple place to capture, qualify, and follow up — and they'll pay for a tool that removes that friction immediately.
 
 ## Target User
-Early-stage founders managing a small pipeline (<200 leads) without a full CRM.
+Early-stage founders managing their own sales pipeline (1–5 person team).
 
 ## Core Objects
-- **Lead** — name, company, email, status, score, notes
-- **Payment** — plan, stripe_session_id, status, activated_at
+- **Lead** — the central record: person, contact info, source, status, notes
+- **Payment** — Stripe checkout result that unlocks full access
 
 ## MVP Checklist (v1 must-haves)
-- [ ] Add / edit / delete a lead with status (new → contacted → qualified → closed)
-- [ ] Lead list with status filter and score column
-- [ ] Auto-score each lead (rule-based: company + email + status signals)
-- [ ] Stripe Checkout for a single paid tier ($29/mo)
-- [ ] Payment status gates adding more than 5 leads (free limit)
-- [ ] Demo mode: app renders with seed data, no login required
+- [ ] Lead list page visible without login (seeded demo data)
+- [ ] Add / edit / delete a lead (name, email, source, status, notes)
+- [ ] Status workflow: new → contacted → qualified → converted / lost
+- [ ] Stripe Checkout (test mode) — one paid tier
+- [ ] Webhook writes payment record; paid status gates "Add Lead"
+- [ ] Empty, loading, and error states on every screen
+- [ ] No secrets in the frontend bundle
 
 ## Non-Goals (v1)
-- Team / multi-user accounts
+- Team accounts / multi-user sharing
 - Email sending or sequences
-- CRM integrations
-- AI-generated outreach drafts
+- AI suggestions or scoring
+- Mobile app
 
 ## Success Criteria
-A founder visits the live URL, sees 5 demo leads, adds a real lead, hits the 5-lead limit, completes Stripe Checkout in test mode, is redirected back, and can now add unlimited leads — all without a login wall. Payment row is written to the database.
+**End-to-end scenario:** A founder opens the live URL, sees 5 demo leads, clicks "Upgrade", completes a Stripe test payment, is redirected back, and can now add a real lead — which appears in the list instantly and persists on refresh.
 
-## Definition of Done
-The success scenario above passes end-to-end in a live preview deployment. Every button persists to the database. Empty, error, and loading states are handled. No secrets in frontend. Payment verified in Stripe test mode.
+**Definition of Done:** That exact journey completes without error on the deployed URL. The payment record exists in the database. The new lead row is real (not seed data). A logged-out stranger on a fresh browser sees the demo list and the upgrade prompt.
